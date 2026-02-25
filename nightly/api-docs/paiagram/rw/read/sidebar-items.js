@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["dialog","poll"],"struct":["ReadFile","ReadPlugin","SelectedFile"],"type":["CallbackFn"]};

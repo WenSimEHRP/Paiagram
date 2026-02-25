@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["paint_callback","push_segment_instance","write_vertices"],"struct":["GpuTripBatch","GpuTripRendererState","SegmentInstance","TripCallback","TripRenderResourceMap","TripRenderResources"]};

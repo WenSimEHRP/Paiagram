@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paiagram Nightly</title>
+    <script defer src="https://cloud.umami.is/script.js"
+        data-website-id="1e645081-beea-4836-bd66-ead28c2c1976"></script>
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            background: #101018;
+            color: #f0f0ff;
+            font-family: sans-serif;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .fallback {
+            padding: 2rem;
+            text-align: center;
+        }
+
+        a {
+            color: #7fb3ff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="fallback" id="loading">Loading Paiagram Nightly Web Build…</div>
+    <script type="module">
+        import init from "./paiagram.js";
+
+        function removeLoading() {
+            const loading = document.getElementById("loading");
+            if (loading) loading.remove();
+        }
+
+        init().then(removeLoading).catch((e) => {
+            console.error("Failed to initialize Paiagram", e);
+            const loading = document.getElementById("loading");
+            if (loading) {
+                loading.textContent = "Failed to load Paiagram Nightly Web Build. Please refresh and try again.";
+            }
+        });
+
+        window.addEventListener("beforeunload", (event) => {
+            event.preventDefault();
+            event.returnValue = "";
+        });
+    </script>
+    <noscript>
+        <div class="fallback">JavaScript is required to run the Paiagram nightly build.</div>
+    </noscript>
+</body>
+
+</html>

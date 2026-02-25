@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["calc","calculate_trips"],"struct":["CalcContext"]};

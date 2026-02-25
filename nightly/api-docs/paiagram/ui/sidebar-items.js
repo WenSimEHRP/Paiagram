@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AdditionalTab","MainTab","Modals","SelectedItem"],"fn":["apply_custom_fonts","open_or_focus_tab","show_name_button","show_ui","sync_ui"],"macro":["for_all_tabs"],"mod":["tabs","widgets"],"struct":["AdditionalTabViewer","AdditionalUiState","GlobalTimer","MainTabViewer","MainUiState","OpenOrFocus","SelectedItems","UiModal","UiPlugin"]};

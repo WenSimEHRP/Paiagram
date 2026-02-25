@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["EntryDisplayMode"],"fn":["display_table"],"struct":["AllTripsDisplayer","AllTripsTab"]};

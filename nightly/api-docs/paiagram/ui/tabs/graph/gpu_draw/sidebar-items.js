@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["paint_callback","write_instances"],"struct":["GpuGraphRendererState","GraphCallback","GraphRenderResources","ShapeInstance","ShapeSpec"]};

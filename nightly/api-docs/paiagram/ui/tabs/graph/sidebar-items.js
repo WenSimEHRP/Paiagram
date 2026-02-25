@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["collect_draw_items","default_arrange_iterations","display","draw_world_grid","segment_visible","smooth_ms"],"mod":["gpu_draw"],"struct":["CollectTimings","CollectedGraphDraw","GraphDrawItems","GraphLabel","GraphNavigation","GraphPerf","GraphTab"]};

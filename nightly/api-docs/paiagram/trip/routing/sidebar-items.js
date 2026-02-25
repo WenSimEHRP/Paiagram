@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["UnwindParams"],"fn":["clear_route","edit_entries","recalculate_estimate","recalculate_route","remove_entries"],"struct":["AddEntryToTrip","RecalculateCandidates","RoutingPlugin"]};

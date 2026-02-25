@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["graphviz","typst_diagram"],"trait":["ExportObject"]};
