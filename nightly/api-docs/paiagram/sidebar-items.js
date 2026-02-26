@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["handle_args","main"],"mod":["colors","entry","export","graph","i18n","import","interval","plugin","problems","route","rw","settings","station","trip","ui","units","vehicle"],"struct":["Cli","PaiagramApp"]};
+window.SIDEBAR_ITEMS = {"fn":["handle_args","main"],"struct":["Cli","PaiagramApp"]};

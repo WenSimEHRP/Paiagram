@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["default_calc_context","write_stations","write_trips"],"struct":["OutputRoot","TripsOutput","TypstDiagram","TypstModule"]};

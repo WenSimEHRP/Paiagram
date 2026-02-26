@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["OuDiaContentType"],"fn":["add_interval_pair","download_file","infer_path_from_url","load_and_trigger","make_class","make_station","normalize_times","pull_file"],"mod":["gtfs","oudia","qetrc"],"struct":["DownloadFile","FileDownloadTask","ImportPlugin","LoadGTFS","LoadOuDia","LoadQETRC"]};

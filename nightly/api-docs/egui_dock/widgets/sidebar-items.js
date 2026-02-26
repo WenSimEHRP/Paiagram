@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["dock_area","tab_viewer"]};

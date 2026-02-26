@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["SaveData"],"fn":["add_load_candidate_compressed_cbor","add_load_candidate_ron","load_scene","make_scene","save","save_ron"],"struct":["LoadCandidate","SavePlugin"]};

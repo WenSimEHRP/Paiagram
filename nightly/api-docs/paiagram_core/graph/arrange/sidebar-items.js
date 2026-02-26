@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GraphLayoutKind"],"fn":["apply_force_directed_layout","apply_graph_layout_task","arrange_via_osm","auto_arrange_graph"],"struct":["GraphLayoutTask"]};

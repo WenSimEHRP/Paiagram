@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["colors","entry","export","graph","i18n","import","interval","plugin","problems","route","rw","settings","station","trip","ui","units","vehicle"]};

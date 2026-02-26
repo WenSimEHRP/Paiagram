@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["DisplayColor","PredefinedColor"],"fn":["color_button","readable_text_color","translate_srgba_to_color32"],"struct":["PredefinedColorIter"]};

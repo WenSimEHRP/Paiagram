@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["sync_preferences"],"struct":["ProjectSettings","SettingsPlugin","UserPreferences"]};

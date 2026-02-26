@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["CurrentField"],"fn":["show_about","show_start"],"struct":["CurrentFieldIter","StartTab"]};

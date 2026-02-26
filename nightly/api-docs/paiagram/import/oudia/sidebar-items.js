@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["_PEST_GRAMMAR_OUD2Parser"],"enum":["Direction","PassingMode","Rule","Structure","Value"],"fn":["load_oud","parse_ast","parse_class","parse_diagram","parse_line_meta","parse_oud2_to_ast","parse_station","parse_trains"],"struct":["Diagram","LineMeta","OUD2Parser","Root","Station","TimetableEntry","Train","TrainClass"]};
