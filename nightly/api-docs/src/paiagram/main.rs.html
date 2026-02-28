@@ -5,10 +5,10 @@
 <a href=#5 id=5 data-nosnippet>5</a><span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]
 <a href=#6 id=6 data-nosnippet>6</a></span><span class="kw">use </span>clap::Parser;
 <a href=#7 id=7 data-nosnippet>7</a>
-<a href=#8 id=8 data-nosnippet>8</a><span class="kw">use </span>paiagram_core::{
-<a href=#9 id=9 data-nosnippet>9</a>    entry, graph, i18n, import, problems, route, rw, settings, station, trip, ui,
-<a href=#10 id=10 data-nosnippet>10</a>};
-<a href=#11 id=11 data-nosnippet>11</a><span class="kw">use </span>paiagram_core::trip::class;
+<a href=#8 id=8 data-nosnippet>8</a><span class="kw">use </span>paiagram_core::trip::class;
+<a href=#9 id=9 data-nosnippet>9</a><span class="kw">use </span>paiagram_core::{entry, graph, i18n, import, problems, route, settings, station, trip};
+<a href=#10 id=10 data-nosnippet>10</a><span class="kw">use </span>paiagram_rw::{read::ReadPlugin, save::SavePlugin};
+<a href=#11 id=11 data-nosnippet>11</a><span class="kw">use </span>paiagram_ui <span class="kw">as </span>ui;
 <a href=#12 id=12 data-nosnippet>12</a>
 <a href=#13 id=13 data-nosnippet>13</a><span class="kw">struct </span>PaiagramApp {
 <a href=#14 id=14 data-nosnippet>14</a>    bevy_app: App,
@@ -53,10 +53,10 @@
 <a href=#53 id=53 data-nosnippet>53</a>            settings::SettingsPlugin,
 <a href=#54 id=54 data-nosnippet>54</a>            problems::ProblemsPlugin,
 <a href=#55 id=55 data-nosnippet>55</a>            class::ClassPlugin,
-<a href=#56 id=56 data-nosnippet>56</a>            rw::read::ReadPlugin,
-<a href=#57 id=57 data-nosnippet>57</a>            rw::save::SavePlugin,
+<a href=#56 id=56 data-nosnippet>56</a>            ReadPlugin,
+<a href=#57 id=57 data-nosnippet>57</a>            SavePlugin,
 <a href=#58 id=58 data-nosnippet>58</a>            bevy::diagnostic::DiagnosticsPlugin,
-<a href=#59 id=59 data-nosnippet>59</a>            bevy::diagnostic::FrameTimeDiagnosticsPlugin::new(<span class="number">2000</span>),
+<a href=#59 id=59 data-nosnippet>59</a>            bevy::diagnostic::FrameTimeDiagnosticsPlugin::default(),
 <a href=#60 id=60 data-nosnippet>60</a>        ));
 <a href=#61 id=61 data-nosnippet>61</a>        <span class="macro">info!</span>(<span class="string">"Initialized Bevy App."</span>);
 <a href=#62 id=62 data-nosnippet>62</a>        <span class="attr">#[cfg(not(target_arch = <span class="string">"wasm32"</span>))]

@@ -6,21 +6,21 @@
 <a href=#6 id=6 data-nosnippet>6</a><span class="kw">use crate</span>::{
 <a href=#7 id=7 data-nosnippet>7</a>    graph::Graph,
 <a href=#8 id=8 data-nosnippet>8</a>    interval::Interval,
-<a href=#9 id=9 data-nosnippet>9</a>    rw::save::{LoadCandidate, SaveData},
-<a href=#10 id=10 data-nosnippet>10</a>    station::Station,
-<a href=#11 id=11 data-nosnippet>11</a>    trip::class::{Class, ClassBundle},
-<a href=#12 id=12 data-nosnippet>12</a>    units::{
-<a href=#13 id=13 data-nosnippet>13</a>        distance::Distance,
-<a href=#14 id=14 data-nosnippet>14</a>        time::{Duration, TimetableTime},
-<a href=#15 id=15 data-nosnippet>15</a>    },
-<a href=#16 id=16 data-nosnippet>16</a>};
-<a href=#17 id=17 data-nosnippet>17</a><span class="kw">use </span>anyhow::{<span class="prelude-ty">Result</span>, anyhow};
-<a href=#18 id=18 data-nosnippet>18</a><span class="kw">use </span>bevy::{
-<a href=#19 id=19 data-nosnippet>19</a>    platform::collections::HashMap,
-<a href=#20 id=20 data-nosnippet>20</a>    prelude::<span class="kw-2">*</span>,
-<a href=#21 id=21 data-nosnippet>21</a>    tasks::{AsyncComputeTaskPool, Task, block_on, futures_lite::future::poll_once},
-<a href=#22 id=22 data-nosnippet>22</a>};
-<a href=#23 id=23 data-nosnippet>23</a><span class="kw">use </span>moonshine_core::kind::<span class="kw-2">*</span>;
+<a href=#9 id=9 data-nosnippet>9</a>    station::Station,
+<a href=#10 id=10 data-nosnippet>10</a>    trip::class::{Class, ClassBundle},
+<a href=#11 id=11 data-nosnippet>11</a>    units::{
+<a href=#12 id=12 data-nosnippet>12</a>        distance::Distance,
+<a href=#13 id=13 data-nosnippet>13</a>        time::{Duration, TimetableTime},
+<a href=#14 id=14 data-nosnippet>14</a>    },
+<a href=#15 id=15 data-nosnippet>15</a>};
+<a href=#16 id=16 data-nosnippet>16</a><span class="kw">use </span>anyhow::{<span class="prelude-ty">Result</span>, anyhow};
+<a href=#17 id=17 data-nosnippet>17</a><span class="kw">use </span>bevy::{
+<a href=#18 id=18 data-nosnippet>18</a>    platform::collections::HashMap,
+<a href=#19 id=19 data-nosnippet>19</a>    prelude::<span class="kw-2">*</span>,
+<a href=#20 id=20 data-nosnippet>20</a>    tasks::{AsyncComputeTaskPool, Task, block_on, futures_lite::future::poll_once},
+<a href=#21 id=21 data-nosnippet>21</a>};
+<a href=#22 id=22 data-nosnippet>22</a><span class="kw">use </span>moonshine_core::kind::<span class="kw-2">*</span>;
+<a href=#23 id=23 data-nosnippet>23</a><span class="kw">use </span>paiagram_rw::save::{LoadCandidate, SaveData};
 <a href=#24 id=24 data-nosnippet>24</a>
 <a href=#25 id=25 data-nosnippet>25</a><span class="kw">mod </span>gtfs;
 <a href=#26 id=26 data-nosnippet>26</a><span class="kw">mod </span>oudia;
@@ -203,32 +203,31 @@
 <a href=#203 id=203 data-nosnippet>203</a>}
 <a href=#204 id=204 data-nosnippet>204</a>
 <a href=#205 id=205 data-nosnippet>205</a><span class="kw">pub fn </span>load_and_trigger(path: <span class="kw-2">&amp;</span>PathBuf, content: Vec&lt;u8&gt;, commands: <span class="kw-2">&amp;mut </span>Commands) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-<a href=#206 id=206 data-nosnippet>206</a>    <span class="kw">let </span>filename = path.file_name().and_then(|s| s.to_str()).unwrap_or(<span class="string">""</span>);
-<a href=#207 id=207 data-nosnippet>207</a>    <span class="kw">match </span>path.extension().and_then(|s| s.to_str()) {
-<a href=#208 id=208 data-nosnippet>208</a>        <span class="prelude-val">Some</span>(<span class="string">"pyetgr"</span>) | <span class="prelude-val">Some</span>(<span class="string">"json"</span>) =&gt; {
-<a href=#209 id=209 data-nosnippet>209</a>            <span class="kw">let </span>content = String::from_utf8(content)<span class="question-mark">?</span>;
-<a href=#210 id=210 data-nosnippet>210</a>            commands.trigger(LoadQETRC { content });
-<a href=#211 id=211 data-nosnippet>211</a>        }
-<a href=#212 id=212 data-nosnippet>212</a>        <span class="prelude-val">Some</span>(<span class="string">"oud2"</span>) =&gt; {
-<a href=#213 id=213 data-nosnippet>213</a>            <span class="kw">let </span>content = String::from_utf8(content)<span class="question-mark">?</span>;
-<a href=#214 id=214 data-nosnippet>214</a>            commands.trigger(LoadOuDia::second(content));
-<a href=#215 id=215 data-nosnippet>215</a>        }
-<a href=#216 id=216 data-nosnippet>216</a>        <span class="prelude-val">Some</span>(<span class="string">"zip"</span>) =&gt; {
-<a href=#217 id=217 data-nosnippet>217</a>            commands.trigger(LoadGTFS { content });
-<a href=#218 id=218 data-nosnippet>218</a>        }
-<a href=#219 id=219 data-nosnippet>219</a>        <span class="prelude-val">Some</span>(<span class="string">"oud"</span>) =&gt; {
-<a href=#220 id=220 data-nosnippet>220</a>            <span class="comment">// oudia does not use utf-8
-<a href=#221 id=221 data-nosnippet>221</a>            </span>commands.trigger(LoadOuDia::original(content))
-<a href=#222 id=222 data-nosnippet>222</a>        }
-<a href=#223 id=223 data-nosnippet>223</a>        <span class="prelude-val">Some</span>(<span class="string">"lz4"</span>) =&gt; {
-<a href=#224 id=224 data-nosnippet>224</a>            commands.insert_resource(LoadCandidate(SaveData::CompressedCbor(content)));
-<a href=#225 id=225 data-nosnippet>225</a>        }
-<a href=#226 id=226 data-nosnippet>226</a>        <span class="prelude-val">Some</span>(<span class="string">"ron"</span>) =&gt; {
-<a href=#227 id=227 data-nosnippet>227</a>            commands.insert_resource(LoadCandidate(SaveData::Ron(content)));
-<a href=#228 id=228 data-nosnippet>228</a>        }
-<a href=#229 id=229 data-nosnippet>229</a>        <span class="prelude-val">Some</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(<span class="string">"Unexpected extension: {e}"</span>)),
-<a href=#230 id=230 data-nosnippet>230</a>        <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(<span class="string">"Path does not have an extension"</span>)),
-<a href=#231 id=231 data-nosnippet>231</a>    }
-<a href=#232 id=232 data-nosnippet>232</a>    <span class="kw">return </span><span class="prelude-val">Ok</span>(());
-<a href=#233 id=233 data-nosnippet>233</a>}
+<a href=#206 id=206 data-nosnippet>206</a>    <span class="kw">match </span>path.extension().and_then(|s| s.to_str()) {
+<a href=#207 id=207 data-nosnippet>207</a>        <span class="prelude-val">Some</span>(<span class="string">"pyetgr"</span>) | <span class="prelude-val">Some</span>(<span class="string">"json"</span>) =&gt; {
+<a href=#208 id=208 data-nosnippet>208</a>            <span class="kw">let </span>content = String::from_utf8(content)<span class="question-mark">?</span>;
+<a href=#209 id=209 data-nosnippet>209</a>            commands.trigger(LoadQETRC { content });
+<a href=#210 id=210 data-nosnippet>210</a>        }
+<a href=#211 id=211 data-nosnippet>211</a>        <span class="prelude-val">Some</span>(<span class="string">"oud2"</span>) =&gt; {
+<a href=#212 id=212 data-nosnippet>212</a>            <span class="kw">let </span>content = String::from_utf8(content)<span class="question-mark">?</span>;
+<a href=#213 id=213 data-nosnippet>213</a>            commands.trigger(LoadOuDia::second(content));
+<a href=#214 id=214 data-nosnippet>214</a>        }
+<a href=#215 id=215 data-nosnippet>215</a>        <span class="prelude-val">Some</span>(<span class="string">"zip"</span>) =&gt; {
+<a href=#216 id=216 data-nosnippet>216</a>            commands.trigger(LoadGTFS { content });
+<a href=#217 id=217 data-nosnippet>217</a>        }
+<a href=#218 id=218 data-nosnippet>218</a>        <span class="prelude-val">Some</span>(<span class="string">"oud"</span>) =&gt; {
+<a href=#219 id=219 data-nosnippet>219</a>            <span class="comment">// oudia does not use utf-8
+<a href=#220 id=220 data-nosnippet>220</a>            </span>commands.trigger(LoadOuDia::original(content))
+<a href=#221 id=221 data-nosnippet>221</a>        }
+<a href=#222 id=222 data-nosnippet>222</a>        <span class="prelude-val">Some</span>(<span class="string">"lz4"</span>) =&gt; {
+<a href=#223 id=223 data-nosnippet>223</a>            commands.insert_resource(LoadCandidate(SaveData::CompressedCbor(content)));
+<a href=#224 id=224 data-nosnippet>224</a>        }
+<a href=#225 id=225 data-nosnippet>225</a>        <span class="prelude-val">Some</span>(<span class="string">"ron"</span>) =&gt; {
+<a href=#226 id=226 data-nosnippet>226</a>            commands.insert_resource(LoadCandidate(SaveData::Ron(content)));
+<a href=#227 id=227 data-nosnippet>227</a>        }
+<a href=#228 id=228 data-nosnippet>228</a>        <span class="prelude-val">Some</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(<span class="string">"Unexpected extension: {e}"</span>)),
+<a href=#229 id=229 data-nosnippet>229</a>        <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(<span class="string">"Path does not have an extension"</span>)),
+<a href=#230 id=230 data-nosnippet>230</a>    }
+<a href=#231 id=231 data-nosnippet>231</a>    <span class="kw">return </span><span class="prelude-val">Ok</span>(());
+<a href=#232 id=232 data-nosnippet>232</a>}
 </code></pre></div></section></main></body></html>

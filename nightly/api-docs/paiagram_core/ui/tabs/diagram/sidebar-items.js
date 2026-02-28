@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["calc_trip_lines"],"struct":["DiagramTab","DiagramTabNavigation","DrawnTrip"]};

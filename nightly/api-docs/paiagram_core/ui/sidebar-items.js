@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["MainTab","SelectedItem"],"fn":["apply_custom_fonts","show_ui"],"mod":["tabs"],"struct":["GlobalTimer","MainUiState","SelectedItems","UiPlugin"]};
