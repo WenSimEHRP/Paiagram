@@ -1,9 +1,0 @@
-(function() {
-    var implementors = Object.fromEntries([["egui_dock",[["impl&lt;Tab&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/ops/index/trait.IndexMut.html\" title=\"trait core::ops::index::IndexMut\">IndexMut</a>&lt;<a class=\"struct\" href=\"egui_dock/dock_state/surface_index/struct.SurfaceIndex.html\" title=\"struct egui_dock::dock_state::surface_index::SurfaceIndex\">SurfaceIndex</a>&gt; for <a class=\"struct\" href=\"egui_dock/dock_state/struct.DockState.html\" title=\"struct egui_dock::dock_state::DockState\">DockState</a>&lt;Tab&gt;"],["impl&lt;Tab&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/ops/index/trait.IndexMut.html\" title=\"trait core::ops::index::IndexMut\">IndexMut</a>&lt;<a class=\"struct\" href=\"egui_dock/dock_state/tree/node_index/struct.NodeIndex.html\" title=\"struct egui_dock::dock_state::tree::node_index::NodeIndex\">NodeIndex</a>&gt; for <a class=\"enum\" href=\"egui_dock/dock_state/surface/enum.Surface.html\" title=\"enum egui_dock::dock_state::surface::Surface\">Surface</a>&lt;Tab&gt;"],["impl&lt;Tab&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/ops/index/trait.IndexMut.html\" title=\"trait core::ops::index::IndexMut\">IndexMut</a>&lt;<a class=\"struct\" href=\"egui_dock/dock_state/tree/node_index/struct.NodeIndex.html\" title=\"struct egui_dock::dock_state::tree::node_index::NodeIndex\">NodeIndex</a>&gt; for <a class=\"struct\" href=\"egui_dock/dock_state/tree/struct.Tree.html\" title=\"struct egui_dock::dock_state::tree::Tree\">Tree</a>&lt;Tab&gt;"]]]]);
-    if (window.register_implementors) {
-        window.register_implementors(implementors);
-    } else {
-        window.pending_implementors = implementors;
-    }
-})()
-//{"start":57,"fragment_lengths":[1520]}

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Split","TabDestination","TabInsert"],"mod":["node","node_index","tab_index","tab_iter"],"struct":["Tree"]};

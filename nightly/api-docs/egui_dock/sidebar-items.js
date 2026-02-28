@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["dock_state","style","widgets"]};

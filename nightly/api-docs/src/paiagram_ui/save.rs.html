@@ -25,9 +25,12 @@
 <a href=#25 id=25 data-nosnippet>25</a><span class="kw">fn </span>make_scene(world: <span class="kw-2">&amp;</span>World, entities: <span class="kw">impl </span>Iterator&lt;Item = Entity&gt;) -&gt; DynamicScene {
 <a href=#26 id=26 data-nosnippet>26</a>    DynamicSceneBuilder::from_world(world)
 <a href=#27 id=27 data-nosnippet>27</a>        .deny_all_resources()
-<a href=#28 id=28 data-nosnippet>28</a>        .allow_all_components()
-<a href=#29 id=29 data-nosnippet>29</a>        .extract_entities(entities)
-<a href=#30 id=30 data-nosnippet>30</a>        .extract_resources()
-<a href=#31 id=31 data-nosnippet>31</a>        .build()
-<a href=#32 id=32 data-nosnippet>32</a>}
+<a href=#28 id=28 data-nosnippet>28</a>        .allow_resource::&lt;<span class="kw">crate</span>::MainUiState&gt;()
+<a href=#29 id=29 data-nosnippet>29</a>        .allow_resource::&lt;<span class="kw">crate</span>::GlobalTimer&gt;()
+<a href=#30 id=30 data-nosnippet>30</a>        .allow_resource::&lt;paiagram_core::graph::Graph&gt;()
+<a href=#31 id=31 data-nosnippet>31</a>        .allow_all_components()
+<a href=#32 id=32 data-nosnippet>32</a>        .extract_entities(entities)
+<a href=#33 id=33 data-nosnippet>33</a>        .extract_resources()
+<a href=#34 id=34 data-nosnippet>34</a>        .build()
+<a href=#35 id=35 data-nosnippet>35</a>}
 </code></pre></div></section></main></body></html>

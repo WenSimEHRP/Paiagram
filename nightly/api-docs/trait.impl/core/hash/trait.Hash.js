@@ -1,9 +1,0 @@
-(function() {
-    var implementors = Object.fromEntries([["egui_dock",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/hash/trait.Hash.html\" title=\"trait core::hash::Hash\">Hash</a> for <a class=\"enum\" href=\"egui_dock/dock_state/tree/enum.Split.html\" title=\"enum egui_dock::dock_state::tree::Split\">Split</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/hash/trait.Hash.html\" title=\"trait core::hash::Hash\">Hash</a> for <a class=\"enum\" href=\"egui_dock/style/enum.TabAddAlign.html\" title=\"enum egui_dock::style::TabAddAlign\">TabAddAlign</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/hash/trait.Hash.html\" title=\"trait core::hash::Hash\">Hash</a> for <a class=\"struct\" href=\"egui_dock/dock_state/surface_index/struct.SurfaceIndex.html\" title=\"struct egui_dock::dock_state::surface_index::SurfaceIndex\">SurfaceIndex</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/hash/trait.Hash.html\" title=\"trait core::hash::Hash\">Hash</a> for <a class=\"struct\" href=\"egui_dock/dock_state/tree/node_index/struct.NodeIndex.html\" title=\"struct egui_dock::dock_state::tree::node_index::NodeIndex\">NodeIndex</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/hash/trait.Hash.html\" title=\"trait core::hash::Hash\">Hash</a> for <a class=\"struct\" href=\"egui_dock/dock_state/tree/tab_index/struct.TabIndex.html\" title=\"struct egui_dock::dock_state::tree::tab_index::TabIndex\">TabIndex</a>"]]]]);
-    if (window.register_implementors) {
-        window.register_implementors(implementors);
-    } else {
-        window.pending_implementors = implementors;
-    }
-})()
-//{"start":57,"fragment_lengths":[1489]}

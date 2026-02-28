@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["AllowedSplits"],"struct":["DockArea"]};
