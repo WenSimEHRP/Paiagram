@@ -94,7 +94,7 @@ pub struct GraphNavigation {
     zoom: f32,
     visible: egui::Rect,
     #[serde(skip)]
-    following: Option<Entity>,
+    following: bool,
     #[serde(skip)]
     pub(super) rotation: f32, // radians, 0 = north up, positive = clockwise
 }
@@ -106,12 +106,11 @@ impl Default for GraphNavigation {
             y_offset: 0.0,
             zoom: 1.0,
             visible: egui::Rect::NOTHING,
-            following: None,
+            following: false,
             rotation: 0.0,
         }
     }
 }
-
 
 impl super::Navigatable for GraphNavigation {
     type XOffset = f64;
@@ -138,77 +137,8 @@ impl super::Navigatable for GraphNavigation {
     fn visible_rect(&self) -> egui::Rect {
         self.visible
     }
-    fn xy_to_screen_pos(&self, x: f64, y: f64) -> egui::Pos2 {
-        let rect = self.visible;
-        let meters_per_px = 1.0 / self.zoom as f64;
-        // World to unrotated screen
-        let sx = rect.left() as f64 + (x - self.x_offset) / meters_per_px;
-        let sy = rect.top() as f64 + (y - self.y_offset) / meters_per_px;
-        if self.rotation.abs() < 1e-6 {
-            return egui::Pos2::new(sx as f32, sy as f32);
-        }
-        // Rotate around screen center
-        let cx = rect.center().x as f64;
-        let cy = rect.center().y as f64;
-        let cos = (self.rotation as f64).cos();
-        let sin = (self.rotation as f64).sin();
-        let dx = sx - cx;
-        let dy = sy - cy;
-        let rx = dx * cos - dy * sin + cx;
-        let ry = dx * sin + dy * cos + cy;
-        egui::Pos2::new(rx as f32, ry as f32)
-    }
-    fn screen_pos_to_xy(&self, pos: egui::Pos2) -> (f64, f64) {
-        let rect = self.visible;
-        let meters_per_px = 1.0 / self.zoom as f64;
-        let (sx, sy) = if self.rotation.abs() < 1e-6 {
-            (pos.x as f64, pos.y as f64)
-        } else {
-            // Inverse rotate around screen center
-            let cx = rect.center().x as f64;
-            let cy = rect.center().y as f64;
-            let cos = (-self.rotation as f64).cos();
-            let sin = (-self.rotation as f64).sin();
-            let dx = pos.x as f64 - cx;
-            let dy = pos.y as f64 - cy;
-            (dx * cos - dy * sin + cx, dx * sin + dy * cos + cy)
-        };
-        let x = self.x_offset + (sx - rect.left() as f64) * meters_per_px;
-        let y = self.y_offset + (sy - rect.top() as f64) * meters_per_px;
-        (x, y)
-    }
-    fn visible_x(&self) -> std::ops::Range<f64> {
-        let width = self.visible.width() as f64;
-        let height = self.visible.height() as f64;
-        let meters_per_px = 1.0 / self.zoom as f64;
-        let base_width = width * meters_per_px;
-        // Expand for rotation: rotated AABB is larger
-        let extra = if self.rotation.abs() < 1e-6 {
-            0.0
-        } else {
-            let sin = self.rotation.abs().sin() as f64;
-            let cos = self.rotation.abs().cos() as f64;
-            (width * sin + height * (1.0 - cos)) * meters_per_px * 0.5
-        };
-        let start = self.x_offset - extra;
-        let end = self.x_offset + base_width + extra;
-        start..end
-    }
-    fn visible_y(&self) -> std::ops::Range<f64> {
-        let width = self.visible.width() as f64;
-        let height = self.visible.height() as f64;
-        let meters_per_px = 1.0 / self.zoom as f64;
-        let base_height = height * meters_per_px;
-        let extra = if self.rotation.abs() < 1e-6 {
-            0.0
-        } else {
-            let sin = self.rotation.abs().sin() as f64;
-            let cos = self.rotation.abs().cos() as f64;
-            (height * sin + width * (1.0 - cos)) * meters_per_px * 0.5
-        };
-        let start = self.y_offset - extra;
-        let end = self.y_offset + base_height + extra;
-        start..end
+    fn rotation(&self) -> f32 {
+        self.rotation
     }
 }
 
@@ -288,6 +218,13 @@ impl super::Tab for GraphTab {
                 world
                     .run_system_cached_with(crate::display_entry_info, (ui, entries.as_slice()))
                     .unwrap();
+                if entries.len() == 1 && ui.button("Follow trip").clicked() {
+                    self.navi.following = true;
+                    let timer = world.resource_mut::<GlobalTimer>();
+                    if !timer.animation_playing {
+                        timer.into_inner().animation_playing = true;
+                    }
+                }
             }
             SelectedItems::Stations(stations) => {
                 world
@@ -303,19 +240,35 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
     let (response, mut painter) =
         ui.allocate_painter(ui.available_size_before_wrap(), Sense::click_and_drag());
     tab.navi.visible = response.rect;
-    // Follow mode: update viewport to track the followed trip
-    let mut follow_active = false;
-    if let Some(trip_entity) = tab.navi.following {
-        // Check entity still exists (handles despawn before async index rebuild)
-        if world.get_entity(trip_entity).is_err() {
-            tab.navi.following = None;
+    // Follow mode: derive trip entity from SelectedItems
+    let followed_trip = if tab.navi.following {
+        let selected = world.resource::<SelectedItems>();
+        if let SelectedItems::TimetableEntries(entries) = selected {
+            if entries.len() == 1 {
+                let entity = entries[0].parent;
+                if world.get_entity(entity).is_ok() {
+                    Some(entity)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
         }
+    } else {
+        None
+    };
+    if followed_trip.is_none() && tab.navi.following {
+        tab.navi.following = false;
+        tab.navi.rotation = 0.0;
     }
     let repeat_time = {
         let settings = world.resource::<ProjectSettings>();
         settings.repeat_frequency.0 as f64
     };
-    if let Some(trip_entity) = tab.navi.following {
+    if let Some(trip_entity) = followed_trip {
         let timer = world.resource::<GlobalTimer>();
         let time = timer.read_seconds();
         let query_time = if repeat_time > 0.0 {
@@ -363,19 +316,18 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
                 // Normalize to [-PI, PI]
                 tab.navi.rotation = (tab.navi.rotation + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
             }
-            follow_active = true;
             ui.ctx().request_repaint();
         } else {
             // Trip not found at this time — journey ended or entity despawned
             if repeat_time <= 0.0 {
-                tab.navi.following = None;
+                tab.navi.following = false;
                 tab.navi.rotation = 0.0;
             }
         }
     }
     tab.navi.handle_navigation(ui, &response);
     // Exit follow mode on pan/drag (but NOT zoom) or Escape or double-click empty
-    if tab.navi.following.is_some() {
+    if tab.navi.following {
         let panned = response.dragged()
             || ui.input(|i| {
                 i.key_down(Key::ArrowUp)
@@ -386,7 +338,7 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
         let escaped = ui.input(|i| i.key_pressed(Key::Escape));
         let double_clicked_empty = response.double_clicked();
         if panned || escaped || double_clicked_empty {
-            tab.navi.following = None;
+            tab.navi.following = false;
             tab.navi.rotation = 0.0;
         }
     }
@@ -442,7 +394,7 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
                 (
                     ui.ctx()
                         .animate_bool(ui.id().with("gugugaga"), tab.navi.zoom > 0.002),
-                    tab.navi.following,
+                    followed_trip,
                 ),
             ),
         )
@@ -529,10 +481,6 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
             } else {
                 items.set_or_reset(SelectedItem::TimetableEntries(entry));
             }
-            // Open trip view beside graph in 80:20 split
-            world.write_message(crate::OpenBeside(crate::MainTab::Trip(
-                crate::tabs::all_tabs::TripTab::new(entry.parent),
-            )));
         }
         (Some(item), items) => {
             let ctrl_pressed = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
@@ -543,16 +491,6 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
             }
         }
         (None, _) => {}
-    }
-    // Check for follow request from edit panel
-    let follow_request = world.resource::<crate::FollowTripRequest>().0;
-    if let Some(trip_entity) = follow_request {
-        tab.navi.following = Some(trip_entity);
-        world.resource_mut::<crate::FollowTripRequest>().0 = None;
-        let timer = world.resource_mut::<GlobalTimer>();
-        if !timer.animation_playing {
-            timer.into_inner().animation_playing = true;
-        }
     }
     // create new station
     if response.secondary_clicked()

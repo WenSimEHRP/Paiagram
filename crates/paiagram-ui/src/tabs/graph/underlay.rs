@@ -161,15 +161,13 @@ pub fn draw_underlay(
     mut stack: Local<Vec<TileId>>,
     mut tiles: Local<Option<Option<HttpTiles>>>,
 ) -> Option<Attribution> {
-    if navi.rotation.abs() < 1e-6 {
-        draw_world_grid(
-            &painter,
-            navi.visible_rect(),
-            navi.offset_x() as f32,
-            navi.offset_y() as f32,
-            navi.zoom_x(),
-        );
-    }
+    draw_world_grid(
+        &painter,
+        navi.visible_rect(),
+        navi.offset_x() as f32,
+        navi.offset_y() as f32,
+        navi.zoom_x(),
+    );
 
     let tiles = tiles.get_or_insert(None);
     let ctx = ui.ctx().clone();
@@ -210,7 +208,7 @@ pub fn draw_underlay(
     let corrected_tile_size = corrected_tile_size(tiles.tile_size(), tile_zoom);
     let clip = painter.clip_rect();
     // Expand culling area when rotated so off-screen tiles that rotate into view are included
-    let rotation = navi.rotation;
+    let rotation = navi.rotation();
     let cull_clip = if rotation.abs() < 1e-6 {
         clip
     } else {

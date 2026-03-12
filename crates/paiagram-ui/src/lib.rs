@@ -17,8 +17,7 @@ use egui::{
 };
 use egui_i18n::tr;
 use egui_tiles::{
-    Behavior, Container, ContainerKind, Linear, LinearDir, SimplificationOptions, Tile, TileId,
-    Tiles, Tree, UiResponse,
+    Behavior, ContainerKind, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse,
 };
 use moonshine_core::prelude::{MapEntities, ReflectMapEntities};
 use paiagram_core::colors::PredefinedColor;
@@ -54,14 +53,11 @@ impl Plugin for UiPlugin {
             .init_resource::<UiModal>()
             .init_resource::<command_palette::CommandPalette>()
             .add_plugins(bevy_inspector_egui::DefaultInspectorConfigPlugin)
-            .init_resource::<FollowTripRequest>()
             .add_message::<OpenOrFocus>()
-            .add_message::<OpenBeside>()
             .add_systems(
                 Update,
                 (
                     open_or_focus_tab.run_if(on_message::<OpenOrFocus>),
-                    open_beside_focused_tab.run_if(on_message::<OpenBeside>),
                     save::apply_loaded_scene
                         .run_if(resource_exists::<paiagram_rw::save::LoadedScene>),
                 ),
@@ -115,7 +111,6 @@ pub(crate) fn display_entry_info(
     (InMut(ui), InRef(selected_entries)): (InMut<Ui>, InRef<[TimetableEntrySelection]>),
     mut commands: Commands,
     mut selected_items: ResMut<SelectedItems>,
-    mut follow_request: ResMut<FollowTripRequest>,
     is_derived_q: Query<(), With<IsDerivedEntry>>,
     mut names_q: Query<&mut Name>,
     schedule_q: Query<&TripSchedule, With<Trip>>,
@@ -142,9 +137,6 @@ pub(crate) fn display_entry_info(
 
         if ui.button("Open trip view").clicked() {
             open_or_focus.write(OpenOrFocus(crate::MainTab::Trip(TripTab::new(parent))));
-        }
-        if ui.button("Follow trip").clicked() {
-            follow_request.0 = Some(parent);
         }
 
         ui.separator();
@@ -536,12 +528,6 @@ impl MapEntities for MainUiState {
 #[derive(Message)]
 struct OpenOrFocus(MainTab);
 
-#[derive(Message)]
-pub(crate) struct OpenBeside(pub MainTab);
-
-#[derive(Resource, Default)]
-pub(crate) struct FollowTripRequest(pub Option<Entity>);
-
 fn open_or_focus_tab(
     mut messages: MessageReader<OpenOrFocus>,
     mut mus: ResMut<MainUiState>,
@@ -560,85 +546,6 @@ fn open_or_focus_tab(
             mus.push_to_focused_leaf(pane.clone())
         };
         aus.focused_id = Some(focused_id);
-    }
-}
-
-fn open_beside_focused_tab(
-    mut messages: MessageReader<OpenBeside>,
-    mut mus: ResMut<MainUiState>,
-) {
-    for msg in messages.read() {
-        let pane = &msg.0;
-
-        // If the pane already exists, just make it visible
-        if let Some(tile_id) = mus.tree.tiles.find_pane(pane) {
-            mus.set_visible(tile_id, true);
-            continue;
-        }
-
-        let new_id = mus.tree.tiles.insert_pane(pane.clone());
-
-        // Find the focused pane's parent container to split beside it
-        if let Some(&active_id) = mus.tree.active_tiles().last()
-            && let Some(parent_id) = mus.tree.tiles.parent_of(active_id)
-        {
-            // Create horizontal split: [parent_container, new_pane] at 80:20
-            let split = Linear::new_binary(
-                LinearDir::Horizontal,
-                [parent_id, new_id],
-                0.8,
-            );
-            let split_id =
-                mus.tree
-                    .tiles
-                    .insert_new(Tile::Container(Container::Linear(split)));
-            // Replace parent_id reference in grandparent, or set as root
-            if let Some(grandparent_id) = mus.tree.tiles.parent_of(parent_id) {
-                if let Some(Tile::Container(gp)) = mus.tree.tiles.get_mut(grandparent_id) {
-                    // Swap parent_id with split_id in the grandparent's children
-                    // Replace parent_id with split_id in grandparent's children
-                    match gp {
-                        Container::Tabs(tabs) => {
-                            for c in &mut tabs.children {
-                                if *c == parent_id {
-                                    *c = split_id;
-                                    break;
-                                }
-                            }
-                        }
-                        Container::Linear(lin) => {
-                            for c in &mut lin.children {
-                                if *c == parent_id {
-                                    *c = split_id;
-                                    break;
-                                }
-                            }
-                        }
-                        _ => {
-                            gp.retain(|id| id != parent_id);
-                            gp.add_child(split_id);
-                        }
-                    }
-                }
-            } else if mus.tree.root == Some(parent_id) {
-                mus.tree.root = Some(split_id);
-            }
-        } else {
-            // Fallback: wrap root and new pane in horizontal split
-            if let Some(old_root) = mus.tree.root {
-                let split = Linear::new_binary(
-                    LinearDir::Horizontal,
-                    [old_root, new_id],
-                    0.8,
-                );
-                let split_id =
-                    mus.tree
-                        .tiles
-                        .insert_new(Tile::Container(Container::Linear(split)));
-                mus.tree.root = Some(split_id);
-            }
-        }
-        // Don't change aus.focused_id — keep the original tab focused for edit panel
     }
 }
 

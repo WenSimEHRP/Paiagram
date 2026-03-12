@@ -77,12 +77,28 @@ pub trait Navigatable {
     fn offset_x(&self) -> f64;
     fn offset_y(&self) -> f64;
     fn set_offset(&mut self, offset_x: f64, offset_y: f64);
+    /// Rotation in radians (0 = no rotation, positive = clockwise).
+    fn rotation(&self) -> f32 {
+        0.0
+    }
     fn screen_pos_to_xy(&self, pos: egui::Pos2) -> (Self::XOffset, Self::YOffset) {
         let rect = self.visible_rect();
         let x_per_screen_unit = self.x_per_screen_unit().into();
         let y_per_screen_unit = self.y_per_screen_unit().into();
-        let x = self.offset_x() + (pos.x - rect.left()) as f64 * x_per_screen_unit;
-        let y = self.offset_y() + (pos.y - rect.top()) as f64 * y_per_screen_unit;
+        let rot = self.rotation();
+        let (sx, sy) = if rot.abs() < 1e-6 {
+            (pos.x as f64, pos.y as f64)
+        } else {
+            let cx = rect.center().x as f64;
+            let cy = rect.center().y as f64;
+            let cos = (-rot as f64).cos();
+            let sin = (-rot as f64).sin();
+            let dx = pos.x as f64 - cx;
+            let dy = pos.y as f64 - cy;
+            (dx * cos - dy * sin + cx, dx * sin + dy * cos + cy)
+        };
+        let x = self.offset_x() + (sx - rect.left() as f64) * x_per_screen_unit;
+        let y = self.offset_y() + (sy - rect.top() as f64) * y_per_screen_unit;
         (x.into(), y.into())
     }
     fn xy_to_screen_pos(&self, x: Self::XOffset, y: Self::YOffset) -> egui::Pos2 {
@@ -93,20 +109,53 @@ pub trait Navigatable {
         let y = y.into();
         let screen_x = rect.left() + ((x - self.offset_x()) / x_per_screen_unit) as f32;
         let screen_y = rect.top() + ((y - self.offset_y()) / y_per_screen_unit) as f32;
-        egui::Pos2::new(screen_x, screen_y)
+        let rot = self.rotation();
+        if rot.abs() < 1e-6 {
+            return egui::Pos2::new(screen_x, screen_y);
+        }
+        let cx = rect.center().x as f64;
+        let cy = rect.center().y as f64;
+        let cos = (rot as f64).cos();
+        let sin = (rot as f64).sin();
+        let dx = screen_x as f64 - cx;
+        let dy = screen_y as f64 - cy;
+        egui::Pos2::new(
+            (dx * cos - dy * sin + cx) as f32,
+            (dx * sin + dy * cos + cy) as f32,
+        )
     }
     fn visible_rect(&self) -> egui::Rect;
     fn visible_x(&self) -> std::ops::Range<Self::XOffset> {
         let width = self.visible_rect().width() as f64;
+        let height = self.visible_rect().height() as f64;
+        let x_per_screen_unit = self.x_per_screen_unit().into();
         let start = self.offset_x();
-        let end = start + width * self.x_per_screen_unit().into();
-        start.into()..end.into()
+        let base_width = width * x_per_screen_unit;
+        let rot = self.rotation();
+        let extra = if rot.abs() < 1e-6 {
+            0.0
+        } else {
+            let sin = rot.abs().sin() as f64;
+            let cos = rot.abs().cos() as f64;
+            (width * sin + height * (1.0 - cos)) * x_per_screen_unit * 0.5
+        };
+        (start - extra).into()..(start + base_width + extra).into()
     }
     fn visible_y(&self) -> std::ops::Range<Self::YOffset> {
+        let width = self.visible_rect().width() as f64;
         let height = self.visible_rect().height() as f64;
+        let y_per_screen_unit = self.y_per_screen_unit().into();
         let start = self.offset_y();
-        let end = start + height * self.y_per_screen_unit().into();
-        start.into()..end.into()
+        let base_height = height * y_per_screen_unit;
+        let rot = self.rotation();
+        let extra = if rot.abs() < 1e-6 {
+            0.0
+        } else {
+            let sin = rot.abs().sin() as f64;
+            let cos = rot.abs().cos() as f64;
+            (height * sin + width * (1.0 - cos)) * y_per_screen_unit * 0.5
+        };
+        (start - extra).into()..(start + base_height + extra).into()
     }
     fn x_per_screen_unit(&self) -> Self::XOffset {
         (1.0 / self.zoom_x().max(f32::EPSILON) as f64).into()
@@ -165,9 +214,20 @@ pub trait Navigatable {
         if let Some(started_pos) = started_pos
             && response.rect.contains(started_pos)
         {
-            let ticks_per_screen_unit = 1.0 / self.zoom_x() as f64;
-            let new_offset_x = self.offset_x() - ticks_per_screen_unit * pan_delta.x as f64;
-            let new_offset_y = self.offset_y() - pan_delta.y as f64 / self.zoom_y() as f64;
+            // Rotate pan delta into world space when viewport is rotated
+            let rot = self.rotation();
+            let (pan_x, pan_y) = if rot.abs() < 1e-6 {
+                (pan_delta.x as f64, pan_delta.y as f64)
+            } else {
+                let cos = (-rot as f64).cos();
+                let sin = (-rot as f64).sin();
+                (
+                    pan_delta.x as f64 * cos - pan_delta.y as f64 * sin,
+                    pan_delta.x as f64 * sin + pan_delta.y as f64 * cos,
+                )
+            };
+            let new_offset_x = self.offset_x() - pan_x / self.zoom_x() as f64;
+            let new_offset_y = self.offset_y() - pan_y / self.zoom_y() as f64;
             moved |= pan_delta.x.abs() >= 0.01;
             moved |= pan_delta.y.abs() >= 0.01;
             self.set_offset(new_offset_x, new_offset_y);
