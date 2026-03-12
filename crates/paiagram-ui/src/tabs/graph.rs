@@ -92,6 +92,8 @@ pub struct GraphNavigation {
     y_offset: f64,
     zoom: f32,
     visible: egui::Rect,
+    #[serde(skip)]
+    following: Option<Entity>,
 }
 
 impl Default for GraphNavigation {
@@ -101,7 +103,17 @@ impl Default for GraphNavigation {
             y_offset: 0.0,
             zoom: 1.0,
             visible: egui::Rect::NOTHING,
+            following: None,
         }
+    }
+}
+
+impl GraphNavigation {
+    pub fn following(&self) -> Option<Entity> {
+        self.following
+    }
+    pub fn set_following(&mut self, entity: Option<Entity>) {
+        self.following = entity;
     }
 }
 

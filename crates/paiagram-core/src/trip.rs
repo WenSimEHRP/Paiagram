@@ -100,6 +100,20 @@ impl TripSpatialIndex {
             .copied()
     }
 
+    /// Find the spatial index item for a specific trip at a given time.
+    /// Returns the matching segment if the trip is active at that time.
+    pub fn query_trip_at_time(&self, trip: Entity, time: f64) -> Option<TripSpatialIndexItem> {
+        // Query with full spatial range but narrow time range
+        let envelope = AABB::from_corners(
+            [f64::NEG_INFINITY, f64::NEG_INFINITY, time],
+            [f64::INFINITY, f64::INFINITY, time],
+        );
+        self.tree
+            .locate_in_envelope_intersecting(&envelope)
+            .find(|item| item.trip == trip)
+            .copied()
+    }
+
     fn replace_tree(&mut self, tree: RTree<TripSpatialIndexItem>) {
         self.tree = tree;
     }
