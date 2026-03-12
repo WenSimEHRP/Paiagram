@@ -373,16 +373,22 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
             }
         }
     }
-    let user_moved = tab.navi.handle_navigation(ui, &response);
-    // Exit follow mode on user input (soft follow)
-    if follow_active && user_moved {
-        tab.navi.following = None;
-        tab.navi.rotation = 0.0;
-    }
-    // Also exit on Escape
-    if tab.navi.following.is_some() && ui.input(|i| i.key_pressed(Key::Escape)) {
-        tab.navi.following = None;
-        tab.navi.rotation = 0.0;
+    tab.navi.handle_navigation(ui, &response);
+    // Exit follow mode on pan/drag (but NOT zoom) or Escape or double-click empty
+    if tab.navi.following.is_some() {
+        let panned = response.dragged()
+            || ui.input(|i| {
+                i.key_down(Key::ArrowUp)
+                    || i.key_down(Key::ArrowDown)
+                    || i.key_down(Key::ArrowLeft)
+                    || i.key_down(Key::ArrowRight)
+            });
+        let escaped = ui.input(|i| i.key_pressed(Key::Escape));
+        let double_clicked_empty = response.double_clicked();
+        if panned || escaped || double_clicked_empty {
+            tab.navi.following = None;
+            tab.navi.rotation = 0.0;
+        }
     }
     let attribution = world
         .run_system_cached_with(
