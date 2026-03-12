@@ -523,14 +523,16 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
             });
         }
         (Some(SelectedItem::TimetableEntries(entry)), items) => {
-            // Set follow target to the trip
-            tab.navi.following = Some(entry.parent);
             let ctrl_pressed = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
             if ctrl_pressed {
                 items.add_entry(SelectedItem::TimetableEntries(entry));
             } else {
                 items.set_or_reset(SelectedItem::TimetableEntries(entry));
             }
+            // Open trip view beside graph in 80:20 split
+            world.write_message(crate::OpenBeside(crate::MainTab::Trip(
+                crate::tabs::all_tabs::TripTab::new(entry.parent),
+            )));
         }
         (Some(item), items) => {
             let ctrl_pressed = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
@@ -542,8 +544,11 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
         }
         (None, _) => {}
     }
-    // Auto-start playback when newly entering follow mode via click
-    if interact_pos.is_some() && tab.navi.following.is_some() {
+    // Check for follow request from edit panel
+    let follow_request = world.resource::<crate::FollowTripRequest>().0;
+    if let Some(trip_entity) = follow_request {
+        tab.navi.following = Some(trip_entity);
+        world.resource_mut::<crate::FollowTripRequest>().0 = None;
         let timer = world.resource_mut::<GlobalTimer>();
         if !timer.animation_playing {
             timer.into_inner().animation_playing = true;
