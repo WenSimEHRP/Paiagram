@@ -95,6 +95,8 @@ pub struct GraphNavigation {
     visible: egui::Rect,
     #[serde(skip)]
     following: Option<Entity>,
+    #[serde(skip)]
+    rotation: f32, // radians, 0 = north up, positive = clockwise
 }
 
 impl Default for GraphNavigation {
@@ -105,6 +107,7 @@ impl Default for GraphNavigation {
             zoom: 1.0,
             visible: egui::Rect::NOTHING,
             following: None,
+            rotation: 0.0,
         }
     }
 }
@@ -134,6 +137,78 @@ impl super::Navigatable for GraphNavigation {
     }
     fn visible_rect(&self) -> egui::Rect {
         self.visible
+    }
+    fn xy_to_screen_pos(&self, x: f64, y: f64) -> egui::Pos2 {
+        let rect = self.visible;
+        let meters_per_px = 1.0 / self.zoom as f64;
+        // World to unrotated screen
+        let sx = rect.left() as f64 + (x - self.x_offset) / meters_per_px;
+        let sy = rect.top() as f64 + (y - self.y_offset) / meters_per_px;
+        if self.rotation.abs() < 1e-6 {
+            return egui::Pos2::new(sx as f32, sy as f32);
+        }
+        // Rotate around screen center
+        let cx = rect.center().x as f64;
+        let cy = rect.center().y as f64;
+        let cos = (self.rotation as f64).cos();
+        let sin = (self.rotation as f64).sin();
+        let dx = sx - cx;
+        let dy = sy - cy;
+        let rx = dx * cos - dy * sin + cx;
+        let ry = dx * sin + dy * cos + cy;
+        egui::Pos2::new(rx as f32, ry as f32)
+    }
+    fn screen_pos_to_xy(&self, pos: egui::Pos2) -> (f64, f64) {
+        let rect = self.visible;
+        let meters_per_px = 1.0 / self.zoom as f64;
+        let (sx, sy) = if self.rotation.abs() < 1e-6 {
+            (pos.x as f64, pos.y as f64)
+        } else {
+            // Inverse rotate around screen center
+            let cx = rect.center().x as f64;
+            let cy = rect.center().y as f64;
+            let cos = (-self.rotation as f64).cos();
+            let sin = (-self.rotation as f64).sin();
+            let dx = pos.x as f64 - cx;
+            let dy = pos.y as f64 - cy;
+            (dx * cos - dy * sin + cx, dx * sin + dy * cos + cy)
+        };
+        let x = self.x_offset + (sx - rect.left() as f64) * meters_per_px;
+        let y = self.y_offset + (sy - rect.top() as f64) * meters_per_px;
+        (x, y)
+    }
+    fn visible_x(&self) -> std::ops::Range<f64> {
+        let width = self.visible.width() as f64;
+        let height = self.visible.height() as f64;
+        let meters_per_px = 1.0 / self.zoom as f64;
+        let base_width = width * meters_per_px;
+        // Expand for rotation: rotated AABB is larger
+        let extra = if self.rotation.abs() < 1e-6 {
+            0.0
+        } else {
+            let sin = self.rotation.abs().sin() as f64;
+            let cos = self.rotation.abs().cos() as f64;
+            (width * sin + height * (1.0 - cos)) * meters_per_px * 0.5
+        };
+        let start = self.x_offset - extra;
+        let end = self.x_offset + base_width + extra;
+        start..end
+    }
+    fn visible_y(&self) -> std::ops::Range<f64> {
+        let width = self.visible.width() as f64;
+        let height = self.visible.height() as f64;
+        let meters_per_px = 1.0 / self.zoom as f64;
+        let base_height = height * meters_per_px;
+        let extra = if self.rotation.abs() < 1e-6 {
+            0.0
+        } else {
+            let sin = self.rotation.abs().sin() as f64;
+            let cos = self.rotation.abs().cos() as f64;
+            (height * sin + width * (1.0 - cos)) * meters_per_px * 0.5
+        };
+        let start = self.y_offset - extra;
+        let end = self.y_offset + base_height + extra;
+        start..end
     }
 }
 
@@ -273,12 +348,28 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
             let new_y = tab.navi.y_offset + (target_y - tab.navi.y_offset) * t as f64;
             tab.navi.x_offset = new_x;
             tab.navi.y_offset = new_y;
+            // Compute heading from trip segment direction and rotate viewport
+            let dx = sample.p1[0] - sample.p0[0];
+            let dy = sample.p1[1] - sample.p0[1];
+            if dx.abs() > 1e-10 || dy.abs() > 1e-10 {
+                // Heading: angle so that direction of travel points "up" on screen
+                // atan2(dx, -dy) gives the rotation needed to align (dx,dy) with screen-up (0,-1)
+                let target_rotation = (dx).atan2(-dy) as f32;
+                // Smooth rotation, handling angle wrapping
+                let mut delta = target_rotation - tab.navi.rotation;
+                // Wrap to [-PI, PI]
+                delta = (delta + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
+                tab.navi.rotation += delta * t;
+                // Normalize to [-PI, PI]
+                tab.navi.rotation = (tab.navi.rotation + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
+            }
             follow_active = true;
             ui.ctx().request_repaint();
         } else {
             // Trip not found at this time — journey ended or entity despawned
             if repeat_time <= 0.0 {
                 tab.navi.following = None;
+                tab.navi.rotation = 0.0;
             }
         }
     }
@@ -286,10 +377,12 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
     // Exit follow mode on user input (soft follow)
     if follow_active && user_moved {
         tab.navi.following = None;
+        tab.navi.rotation = 0.0;
     }
     // Also exit on Escape
     if tab.navi.following.is_some() && ui.input(|i| i.key_pressed(Key::Escape)) {
         tab.navi.following = None;
+        tab.navi.rotation = 0.0;
     }
     let attribution = world
         .run_system_cached_with(
