@@ -109,14 +109,6 @@ impl Default for GraphNavigation {
     }
 }
 
-impl GraphNavigation {
-    pub fn following(&self) -> Option<Entity> {
-        self.following
-    }
-    pub fn set_following(&mut self, entity: Option<Entity>) {
-        self.following = entity;
-    }
-}
 
 impl super::Navigatable for GraphNavigation {
     type XOffset = f64;
@@ -451,8 +443,8 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
         }
         (None, _) => {}
     }
-    // Auto-start playback when entering follow mode
-    if tab.navi.following.is_some() {
+    // Auto-start playback when newly entering follow mode via click
+    if interact_pos.is_some() && tab.navi.following.is_some() {
         let timer = world.resource_mut::<GlobalTimer>();
         if !timer.animation_playing {
             timer.into_inner().animation_playing = true;
