@@ -161,13 +161,15 @@ pub fn draw_underlay(
     mut stack: Local<Vec<TileId>>,
     mut tiles: Local<Option<Option<HttpTiles>>>,
 ) -> Option<Attribution> {
-    draw_world_grid(
-        &painter,
-        navi.visible_rect(),
-        navi.offset_x() as f32,
-        navi.offset_y() as f32,
-        navi.zoom_x(),
-    );
+    if navi.rotation.abs() < 1e-6 {
+        draw_world_grid(
+            &painter,
+            navi.visible_rect(),
+            navi.offset_x() as f32,
+            navi.offset_y() as f32,
+            navi.zoom_x(),
+        );
+    }
 
     let tiles = tiles.get_or_insert(None);
     let ctx = ui.ctx().clone();
@@ -207,6 +209,16 @@ pub fn draw_underlay(
     ));
     let corrected_tile_size = corrected_tile_size(tiles.tile_size(), tile_zoom);
     let clip = painter.clip_rect();
+    // Expand culling area when rotated so off-screen tiles that rotate into view are included
+    let rotation = navi.rotation;
+    let cull_clip = if rotation.abs() < 1e-6 {
+        clip
+    } else {
+        // The rotated viewport's AABB is larger; use the diagonal as a safe expansion
+        let diag = (clip.width().powi(2) + clip.height().powi(2)).sqrt();
+        let expand = (diag - clip.width().min(clip.height())) * 0.5;
+        clip.expand(expand)
+    };
 
     while let Some(tile_id) = stack.pop() {
         if !visited.insert(tile_id) {
@@ -220,12 +232,12 @@ pub fn draw_underlay(
             map_center_projected.y(),
             clip,
         );
-        if !clip.intersects(tile_rect) {
+        if !cull_clip.intersects(tile_rect) {
             continue;
         }
 
         if let Some(tile_piece) = tiles.at(tile_id) {
-            draw_tile_piece(&painter, tile_piece, tile_rect);
+            draw_tile_piece(&painter, tile_piece, tile_rect, clip.center(), rotation);
         }
 
         for next in [
@@ -347,11 +359,27 @@ fn tile_rect(
 }
 
 // TODO: handle vector pieces?
-fn draw_tile_piece(painter: &Painter, tile_piece: walkers::TilePiece, rect: Rect) {
+fn draw_tile_piece(
+    painter: &Painter,
+    tile_piece: walkers::TilePiece,
+    rect: Rect,
+    center: egui::Pos2,
+    rotation: f32,
+) {
     match tile_piece.tile {
         Tile::Raster(texture_handle) => {
             let mut mesh = Mesh::with_texture(texture_handle.id());
             mesh.add_rect_with_uv(rect, tile_piece.uv, egui::Color32::WHITE);
+            if rotation.abs() > 1e-6 {
+                let cos = rotation.cos();
+                let sin = rotation.sin();
+                for vertex in &mut mesh.vertices {
+                    let dx = vertex.pos.x - center.x;
+                    let dy = vertex.pos.y - center.y;
+                    vertex.pos.x = dx * cos - dy * sin + center.x;
+                    vertex.pos.y = dx * sin + dy * cos + center.y;
+                }
+            }
             painter.add(Shape::mesh(mesh));
         }
         _ => {}

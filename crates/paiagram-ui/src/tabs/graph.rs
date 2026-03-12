@@ -96,7 +96,7 @@ pub struct GraphNavigation {
     #[serde(skip)]
     following: Option<Entity>,
     #[serde(skip)]
-    rotation: f32, // radians, 0 = north up, positive = clockwise
+    pub(super) rotation: f32, // radians, 0 = north up, positive = clockwise
 }
 
 impl Default for GraphNavigation {
@@ -352,9 +352,9 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
             let dx = sample.p1[0] - sample.p0[0];
             let dy = sample.p1[1] - sample.p0[1];
             if dx.abs() > 1e-10 || dy.abs() > 1e-10 {
-                // Heading: angle so that direction of travel points "up" on screen
-                // atan2(dx, -dy) gives the rotation needed to align (dx,dy) with screen-up (0,-1)
-                let target_rotation = (dx).atan2(-dy) as f32;
+                // Heading: rotate view so direction of travel points "up" on screen
+                // The rotation matrix R(θ) maps (dx,dy) to (0,-k). Solving gives θ = atan2(-dx,-dy).
+                let target_rotation = (-dx).atan2(-dy) as f32;
                 // Smooth rotation, handling angle wrapping
                 let mut delta = target_rotation - tab.navi.rotation;
                 // Wrap to [-PI, PI]
