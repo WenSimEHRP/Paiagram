@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use egui::{
-    Align2, Color32, CornerRadius, FontId, Margin, Painter, Pos2, Rect, Sense, Stroke, Ui, Vec2,
+    Align2, Color32, CornerRadius, FontId, Key, Margin, Painter, Pos2, Rect, Sense, Stroke, Ui,
+    Vec2,
 };
 use egui_i18n::tr;
 use moonshine_core::prelude::MapEntities;
@@ -235,7 +236,69 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
     let (response, mut painter) =
         ui.allocate_painter(ui.available_size_before_wrap(), Sense::click_and_drag());
     tab.navi.visible = response.rect;
-    tab.navi.handle_navigation(ui, &response);
+    // Follow mode: update viewport to track the followed trip
+    let mut follow_active = false;
+    if let Some(trip_entity) = tab.navi.following {
+        // Check entity still exists (handles despawn before async index rebuild)
+        if world.get_entity(trip_entity).is_err() {
+            tab.navi.following = None;
+        }
+    }
+    let repeat_time = {
+        let settings = world.resource::<ProjectSettings>();
+        settings.repeat_frequency.0 as f64
+    };
+    if let Some(trip_entity) = tab.navi.following {
+        let timer = world.resource::<GlobalTimer>();
+        let time = timer.read_seconds();
+        let query_time = if repeat_time > 0.0 {
+            time.rem_euclid(repeat_time)
+        } else {
+            time
+        };
+        let trip_spatial_index = world.resource::<TripSpatialIndex>();
+        if let Some(sample) = trip_spatial_index.query_trip_at_time(trip_entity, query_time) {
+            // Interpolate trip position
+            let pos = if query_time <= sample.t1 {
+                sample.p0
+            } else if query_time >= sample.t2 {
+                sample.p1
+            } else {
+                let f = (query_time - sample.t1) / (sample.t2 - sample.t1).max(f64::EPSILON);
+                [
+                    sample.p0[0] + (sample.p1[0] - sample.p0[0]) * f,
+                    sample.p0[1] + (sample.p1[1] - sample.p0[1]) * f,
+                ]
+            };
+            // Smooth viewport centering using exponential smoothing
+            let dt = ui.ctx().input(|i| i.stable_dt).min(0.1);
+            let t = egui::emath::exponential_smooth_factor(0.9, 0.3, dt);
+            let view_width = response.rect.width() as f64 / tab.navi.zoom as f64;
+            let view_height = response.rect.height() as f64 / tab.navi.zoom as f64;
+            let target_x = pos[0] - view_width / 2.0;
+            let target_y = pos[1] - view_height / 2.0;
+            let new_x = tab.navi.x_offset + (target_x - tab.navi.x_offset) * t as f64;
+            let new_y = tab.navi.y_offset + (target_y - tab.navi.y_offset) * t as f64;
+            tab.navi.x_offset = new_x;
+            tab.navi.y_offset = new_y;
+            follow_active = true;
+            ui.ctx().request_repaint();
+        } else {
+            // Trip not found at this time — journey ended or entity despawned
+            if repeat_time <= 0.0 {
+                tab.navi.following = None;
+            }
+        }
+    }
+    let user_moved = tab.navi.handle_navigation(ui, &response);
+    // Exit follow mode on user input (soft follow)
+    if follow_active && user_moved {
+        tab.navi.following = None;
+    }
+    // Also exit on Escape
+    if tab.navi.following.is_some() && ui.input(|i| i.key_pressed(Key::Escape)) {
+        tab.navi.following = None;
+    }
     let attribution = world
         .run_system_cached_with(
             underlay::draw_underlay,
@@ -285,8 +348,11 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
                 interact_pos,
                 &selected_stations,
                 &selected_trips,
-                ui.ctx()
-                    .animate_bool(ui.id().with("gugugaga"), tab.navi.zoom > 0.002),
+                (
+                    ui.ctx()
+                        .animate_bool(ui.id().with("gugugaga"), tab.navi.zoom > 0.002),
+                    tab.navi.following,
+                ),
             ),
         )
         .unwrap();
@@ -365,6 +431,16 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
                 length: Distance::from_m(1000),
             });
         }
+        (Some(SelectedItem::TimetableEntries(entry)), items) => {
+            // Set follow target to the trip
+            tab.navi.following = Some(entry.parent);
+            let ctrl_pressed = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
+            if ctrl_pressed {
+                items.add_entry(SelectedItem::TimetableEntries(entry));
+            } else {
+                items.set_or_reset(SelectedItem::TimetableEntries(entry));
+            }
+        }
         (Some(item), items) => {
             let ctrl_pressed = ui.input(|i| i.modifiers.ctrl || i.modifiers.command);
             if ctrl_pressed {
@@ -374,6 +450,13 @@ fn display(tab: &mut GraphTab, world: &mut World, ui: &mut egui::Ui) {
             }
         }
         (None, _) => {}
+    }
+    // Auto-start playback when entering follow mode
+    if tab.navi.following.is_some() {
+        let timer = world.resource_mut::<GlobalTimer>();
+        if !timer.animation_playing {
+            timer.into_inner().animation_playing = true;
+        }
     }
     // create new station
     if response.secondary_clicked()
@@ -544,7 +627,7 @@ fn push_draw_items(
         In(maybe_interact_pos),
         InRef(selected_stations),
         InRef(selected_trips),
-        In(text_strength),
+        In((text_strength, following_trip)),
     ): (
         In<bool>,
         InRef<GraphNavigation>,
@@ -553,7 +636,7 @@ fn push_draw_items(
         In<Option<Pos2>>,
         InRef<[Entity]>,
         InRef<[Entity]>,
-        In<f32>,
+        In<(f32, Option<Entity>)>,
     ),
     nodes: Query<(Entity, &Node, Option<&Name>)>,
     spatial_index: Res<GraphSpatialIndex>,
@@ -688,6 +771,16 @@ fn push_draw_items(
                 SELECTION_RADIUS,
                 Color32::BLUE.gamma_multiply(0.5),
                 Stroke::new(1.0, Color32::BLUE),
+            );
+        }
+
+        if Some(sample.trip) == following_trip {
+            // Draw a larger, brighter highlight for the followed trip
+            painter.circle(
+                pos,
+                SELECTION_RADIUS + 4.0,
+                Color32::GOLD.gamma_multiply(0.3),
+                Stroke::new(2.0, Color32::GOLD),
             );
         }
 
