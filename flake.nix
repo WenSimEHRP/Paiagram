@@ -22,8 +22,10 @@
           inherit system overlays;
         };
 
-        # Define the runtime dependencies needed by Bevy
-        runtimeLibs = with pkgs; [
+        isLinux = pkgs.stdenv.hostPlatform.isLinux;
+
+        # Define the runtime dependencies needed by Bevy (Linux only)
+        runtimeLibs = pkgs.lib.optionals isLinux (with pkgs; [
           vulkan-loader
           libX11
           libXcursor
@@ -35,13 +37,14 @@
           libudev-zero
           alsa-lib
           dbus
-        ];
+        ]);
 
         rustToolchain = pkgs.rust-bin.stable.latest.default.override {
           extensions = [ "rust-src" ];
           targets = [
-            "x86_64-unknown-linux-gnu"
             "wasm32-unknown-unknown"
+          ] ++ pkgs.lib.optionals isLinux [
+            "x86_64-unknown-linux-gnu"
           ];
         };
 
@@ -67,29 +70,33 @@
 
         devShells.default =
           with pkgs;
-          mkShell {
-            buildInputs = [
-              rustToolchain
-              pkg-config
-              openssl # TODO: remove this
-              wasm-bindgen-cli_0_2_108
-              just
-              wget
-              p7zip
-              binaryen
-              cargo-about
-              gitui
-            ]
-            ++ runtimeLibs
-            ++ [
-              mold
-              clang
-              stdenv.cc.cc
-            ];
+          mkShell (
+            {
+              buildInputs = [
+                rustToolchain
+                pkg-config
+                openssl # TODO: remove this
+                wasm-bindgen-cli_0_2_108
+                just
+                wget
+                p7zip
+                binaryen
+                cargo-about
+                gitui
+              ]
+              ++ runtimeLibs
+              ++ lib.optionals isLinux [
+                mold
+                clang
+                stdenv.cc.cc
+              ];
 
-            RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
-            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (runtimeLibs ++ [ stdenv.cc.cc ]);
-          };
+              RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
+            }
+            // lib.optionalAttrs isLinux {
+              LD_LIBRARY_PATH = lib.makeLibraryPath (runtimeLibs ++ [ stdenv.cc.cc ]);
+            }
+          );
       }
     );
 }
